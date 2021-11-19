@@ -64,7 +64,7 @@
       </b-form-group>
     </section>
     <section v-if="selected==3" class="page-element">
-      <h1 class="titleSection" >Посчитать количество символов в тексте</h1>
+      <h1 class="titleSection">Посчитать количество символов в тексте</h1>
       <div class="text-wrapper">
         <div class="textarea-wrap">
           <b-btn style="width: 100%;" onclick="document.getElementById('file-input').click();" class="m-3"
@@ -90,20 +90,22 @@
 
             </tr>
             <tr>
-              <td>{{symbolsCount.total_characters}}</td>
-              <td>{{symbolsCount.total_characters_length}}</td>
-              <td>{{symbolsCount.without_spaces}}</td>
-              <td>{{symbolsCount.word_count}}</td>
-              <td>{{symbolsCount.word_count_uniq}}</td>
+              <td>{{ symbolsCount.total_characters }}</td>
+              <td>{{ symbolsCount.total_characters_length }}</td>
+              <td>{{ symbolsCount.without_spaces }}</td>
+              <td>{{ symbolsCount.word_count }}</td>
+              <td>{{ symbolsCount.word_count_uniq }}</td>
 
             </tr>
             <tr v-if="symbolsCount.words.length>0">
               <th colspan="3">Ключевое слово</th>
               <th>Количество</th>
-              <th>Вес</th>
+              <th>Процентное количество</th>
             </tr>
-            <tr v-for="item in symbolsCount.words" :key="item">
-              <td colspan="3">{{item}}</td>
+            <tr v-for="item in symbolsCount.words_filtered" :key="item">
+              <td colspan="3">{{ item.word }}</td>
+              <td>{{ item.count }}</td>
+              <td>{{item.percent}}%</td>
             </tr>
 
           </table>
@@ -141,13 +143,14 @@ export default {
         {text: 'иНВЕРСИЯ рЕГИСТРА', value: '4'},
         {text: 'атскет яисревнИ', value: '5'}
       ],
-      symbolsCount:{
-        total_characters_length:0,
-        total_characters:0,
-        without_spaces:0,
-        word_count:0,
-        word_count_uniq:0,
-        words:[]
+      symbolsCount: {
+        total_characters_length: 0,
+        total_characters: 0,
+        without_spaces: 0,
+        word_count: 0,
+        word_count_uniq: 0,
+        words: [],
+        wordsFiltered: [],
       }
     }
   },
@@ -176,21 +179,31 @@ export default {
         URL.revokeObjectURL(a.href);
       }, 1500);
     },
-    symbolsCounter(){
-      this.symbolsCount.total_characters_length=this.textToChange.toLowerCase().length
-      this.symbolsCount.total_characters=this.textToChange.toLowerCase().replace(/(\r\n|\n|\r)/gm, "").length
-      this.symbolsCount.without_spaces=this.textToChange.toLowerCase().replace(/(\r\n|\n|\r)/gm, "").replace(/ /g, "").length;
-      this.symbolsCount.word_count=this.textToChange.toLowerCase().replace (/\r\n?|\n/g, ' ').replace (/ {2,}/g, ' ').replace (/^ /, '').replace (/ $/, '').split (' ').length
-      this.symbolsCount.word_count_uniq=[...new Set(this.textToChange.toLowerCase().replace (/\r\n?|\n/g, ' ').replace (/ {2,}/g, ' ').replace (/^ /, '').replace (/ $/, '').split (' '))].length
+    symbolsCounter() {
+      this.symbolsCount.total_characters_length = this.textToChange.toLowerCase().length
+      this.symbolsCount.total_characters = this.textToChange.toLowerCase().replace(/(\r\n|\n|\r)/gm, "").length
+      this.symbolsCount.without_spaces = this.textToChange.toLowerCase().replace(/(\r\n|\n|\r)/gm, "").replace(/ /g, "").length;
+      this.symbolsCount.word_count = this.textToChange.toLowerCase().replace(/\r\n?|\n/g, ' ').replace(/ {2,}/g, ' ').replace(/^ /, '').replace(/ $/, '').split(' ').length
+      this.symbolsCount.word_count_uniq = [...new Set(this.textToChange.toLowerCase().replace(/\r\n?|\n/g, ' ').replace(/ {2,}/g, ' ').replace(/^ /, '').replace(/ $/, '').split(' '))].length
 
 
+      this.symbolsCount.words = [...new Set(this.textToChange.replace(/[^a-zа-яё\s]/gi, '').replace(/\r\n?|\n/g, ' ').replace(/ {2,}/g, ' ').replace(/^ /, '').replace(/ $/, '').split(' '))]
+      this.symbolsCount.words_filtered=[]
+      for (var word = 0; word < this.symbolsCount.words.length; word++) {
+        this.symbolsCount.words_filtered.push({
+          'word': this.symbolsCount.words[word],
+          'count': (this.textToChange.split(this.symbolsCount.words[word]).length - 1),
+          'percent':Math.round((((this.textToChange.split(this.symbolsCount.words[word]).length - 1)/this.symbolsCount.word_count)*100)*100)/100
+        })
+      }
 
-      this.symbolsCount.words=[...new Set(this.textToChange.toLowerCase().replace (/\r\n?|\n/g, ' ').replace (/ {2,}/g, ' ').replace (/^ /, '').replace (/ $/, '').split (' '))]
 
-      if(this.symbolsCount.total_characters==0){
-        this.symbolsCount.words=[]
-        this.symbolsCount.word_count=0
-        this.symbolsCount.word_count_uniq=0
+      if (this.symbolsCount.total_characters == 0) {
+        this.symbolsCount.total_characters=0
+        this.symbolsCount.words_filtered=[]
+        this.symbolsCount.words = []
+        this.symbolsCount.word_count = 0
+        this.symbolsCount.word_count_uniq = 0
       }
     },
     changeRegister() {
@@ -208,7 +221,7 @@ export default {
           this.texChanged = [...this.textToChange].map(letter => letter === letter.toUpperCase() ? letter.toLowerCase() : letter.toUpperCase()).join('')
           break;
         case '5':
-          this.texChanged =[...this.textToChange].reverse().join('')
+          this.texChanged = [...this.textToChange].reverse().join('')
           break;
 
       }
@@ -238,13 +251,15 @@ export default {
 </script>
 <style>
 input[type="radio"] {
-  display:none!important;
+  display: none !important;
 }
+
 .table_blur {
   background: #f5ffff;
   border-collapse: collapse;
   text-align: center;
 }
+
 .table_blur th {
   border-top: 1px solid #007bff;
   border-bottom: 1px solid #007bff;
@@ -254,6 +269,7 @@ input[type="radio"] {
   padding: 10px 15px;
   position: relative;
 }
+
 .table_blur th:after {
   content: "";
   display: block;
@@ -262,35 +278,42 @@ input[type="radio"] {
   top: 25%;
   height: 25%;
   width: 100%;
-  background: linear-gradient(rgba(255, 255, 255, 0), rgba(255,255,255,.08));
+  background: linear-gradient(rgba(255, 255, 255, 0), rgba(255, 255, 255, .08));
 }
+
 .table_blur tr:nth-child(odd) {
   background: #ebf3f9;
 }
+
 .table_blur th:first-child {
   border-left: 1px solid #777777;
-  border-bottom:  1px solid #777777;
+  border-bottom: 1px solid #777777;
   box-shadow: inset 1px 1px 0 #999999, inset 0 -1px 0 #999999;
 }
+
 .table_blur th:last-child {
   border-right: 1px solid #777777;
-  border-bottom:  1px solid #777777;
+  border-bottom: 1px solid #777777;
   box-shadow: inset -1px 1px 0 #999999, inset 0 -1px 0 #999999;
 }
+
 .table_blur td {
   border: 1px solid #e3eef7;
   padding: 10px 15px;
   position: relative;
   transition: all 0.5s ease;
 }
+
 .table_blur tbody:hover td {
   color: transparent;
   text-shadow: 0 0 3px #a09f9d;
 }
+
 .table_blur tbody:hover tr:hover td {
   color: #444444;
   text-shadow: none;
 }
+
 .textCountTable {
   margin: auto
 }
@@ -336,7 +359,8 @@ input[type="radio"] {
   width: 100% !important;
   margin: 1rem;
 }
-.titleSection{
+
+.titleSection {
   text-align: center;
   margin-bottom: 1rem;
 }
