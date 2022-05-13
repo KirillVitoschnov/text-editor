@@ -185,7 +185,7 @@ export default {
   },
   methods: {
     replaceMethod(){
-      this.textToChange=this.textToChange.replace(this.textToFind,this.textToReplace)
+      this.textToChange=this.textToChange.replaceAll(this.textToFind,this.textToReplace)
     },
     saveText(e) {
       this.textToChange = e.target.result
