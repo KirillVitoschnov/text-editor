@@ -15,6 +15,33 @@
           buttons
       ></b-form-radio-group>
     </b-form-group>
+    <section v-if="selected==2" class="page-element">
+      <h1 class="titleSection">Замена и удаление слов</h1>
+      <div class="text-wrapper">
+        <div class="textarea-wrap">
+          <b-btn style="width: 100%;" onclick="document.getElementById('file-input').click();" class="m-3"
+                 variant="outline-primary">Импортировать
+          </b-btn>
+          <input @change="uploadString" id="file-input" type="file" name="name" style="display: none;"/>
+          <textarea
+              class="textarea"
+              id="textarea"
+              v-model="textToChange"
+              placeholder="Введите текст который нужно изменить"
+              rows="3"
+          ></textarea>
+        </div>
+        <div class="textarea-wrap" style="margin: auto 0;">
+          <b-form-input v-model="textToFind"  class="m-3" placeholder="Cлово которое нужно найти"></b-form-input>
+          <b-form-input v-model="textToReplace"  class="m-3" placeholder="Слово на которое нужно заменить"></b-form-input>
+          <b-btn variant="outline-primary"  @click="replaceMethod"  class="m-3">Заменить</b-btn>
+        </div>
+
+      </div>
+      <div class="btn-group-center">
+        <b-btn @click="textToChange='';textToFind='';textToReplace=''" class="m-3" variant="outline-primary">Сбросить</b-btn>
+      </div>
+    </section>
     <section v-if="selected==1" class="page-element">
       <h1 class="titleSection">Конвертер регистров</h1>
       <div class="text-wrapper">
@@ -82,7 +109,7 @@
         <div class="textarea-wrap">
           <table class="textCountTable table_blur">
             <tr>
-              <th>Полная длинна текста</th>
+              <th>Полная длинна текста (без перевода строки)</th>
               <th>Всего символов</th>
               <th>Без пробелов</th>
               <th>Количество слов</th>
@@ -126,9 +153,11 @@ export default {
   data() {
     return {
       fileName: 'тестовый файл',
+      textToFind:'',
+      textToReplace:'',
       textToChange: '',
       texChanged: '',
-      selected: '3',
+      selected: '2',
       selectedRegister: '1',
       options: [
         {text: 'Конвертер регистров', value: '1'},
@@ -155,6 +184,9 @@ export default {
     }
   },
   methods: {
+    replaceMethod(){
+      this.textToChange=this.textToChange.replace(this.textToFind,this.textToReplace)
+    },
     saveText(e) {
       this.textToChange = e.target.result
     },
@@ -185,9 +217,7 @@ export default {
       this.symbolsCount.without_spaces = this.textToChange.toLowerCase().replace(/(\r\n|\n|\r)/gm, "").replace(/ /g, "").length;
       this.symbolsCount.word_count = this.textToChange.toLowerCase().replace(/\r\n?|\n/g, ' ').replace(/ {2,}/g, ' ').replace(/^ /, '').replace(/ $/, '').split(' ').length
       this.symbolsCount.word_count_uniq = [...new Set(this.textToChange.toLowerCase().replace(/\r\n?|\n/g, ' ').replace(/ {2,}/g, ' ').replace(/^ /, '').replace(/ $/, '').split(' '))].length
-
-
-      this.symbolsCount.words = [...new Set(this.textToChange.replace(/[^a-zа-яё\s]/gi, '').replace(/\r\n?|\n/g, ' ').replace(/ {2,}/g, ' ').replace(/^ /, '').replace(/ $/, '').split(' '))]
+      this.symbolsCount.words = [...new Set(this.textToChange.replace(/[^a-zа-яё0-9\s]/gi, '').replace(/\r\n?|\n/g, ' ').replace(/ {2,}/g, ' ').replace(/^ /, '').replace(/ $/, '').split(' '))]
       this.symbolsCount.words_filtered=[]
       for (var word = 0; word < this.symbolsCount.words.length; word++) {
         this.symbolsCount.words_filtered.push({
@@ -198,7 +228,7 @@ export default {
       }
 
 
-      if (this.symbolsCount.total_characters == 0) {
+      if (this.symbolsCount.total_characters == 0  || this.symbolsCount.without_spaces==0 ) {
         this.symbolsCount.total_characters=0
         this.symbolsCount.words_filtered=[]
         this.symbolsCount.words = []
